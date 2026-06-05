@@ -1,0 +1,116 @@
+{% extends 'base.html' %}
+{% block title %}Categories{% endblock %}
+{% block page_title %}Categories{% endblock %}
+
+{% block head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-h1">Spending by Category</h1>
+    <p class="page-sub">Total across all time: ₹{{ "{:,.2f}".format(total) }}</p>
+  </div>
+</div>
+
+{% if cat_totals %}
+<div class="two-col-layout">
+  <!-- Doughnut chart -->
+  <div class="card chart-card">
+    <h2 class="card__title">Distribution</h2>
+    <div class="chart-container chart-container--donut">
+      <canvas id="doughnutChart"></canvas>
+    </div>
+  </div>
+
+  <!-- Category breakdown table -->
+  <div class="card card--table">
+    <h2 class="card__title">Breakdown</h2>
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Category</th>
+            <th class="text-right">Total</th>
+            <th class="text-right">Share</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for cat, amount in cat_totals.items() %}
+          <tr>
+            <td>
+              <span class="cat-dot cat-dot--{{ loop.index0 % 8 }}"></span>
+              {{ cat }}
+            </td>
+            <td class="text-right td-amount">₹{{ "{:,.2f}".format(amount) }}</td>
+            <td class="text-right">
+              {% if total > 0 %}
+                {{ "%.1f" | format(amount / total * 100) }}%
+              {% else %}—{% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+{% else %}
+<div class="card">
+  <div class="empty-state">
+    <p>No expenses yet. Add some to see your category breakdown.</p>
+    <a href="{{ url_for('expenses.add') }}" class="btn btn--outline">Add Expense</a>
+  </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+(async () => {
+  const res  = await fetch('/api/categories');
+  const data = await res.json();
+  if (!data.labels.length) return;
+
+  const PALETTE = [
+    '#c084fc','#818cf8','#38bdf8','#34d399','#fbbf24',
+    '#fb923c','#f87171','#a3e635','#e879f9','#67e8f9'
+  ];
+
+  new Chart(document.getElementById('doughnutChart'), {
+    type: 'doughnut',
+    data: {
+      labels: data.labels,
+      datasets: [{
+        data: data.data,
+        backgroundColor: PALETTE.slice(0, data.labels.length),
+        borderWidth: 0,
+        hoverOffset: 8,
+      }]
+    },
+    options: {
+      cutout: '68%',
+      plugins: {
+        legend: {
+          position: 'bottom',
+          labels: {
+            color: getComputedStyle(document.documentElement).getPropertyValue('--text-secondary').trim(),
+            font: { family: 'DM Sans', size: 13 },
+            padding: 16,
+            boxWidth: 12,
+            boxHeight: 12,
+          }
+        },
+        tooltip: {
+          callbacks: {
+            label: ctx => ` ₹${ctx.parsed.toLocaleString('en-IN', {minimumFractionDigits: 2})}`
+          }
+        }
+      }
+    }
+  });
+})();
+</script>
+{% endblock %}

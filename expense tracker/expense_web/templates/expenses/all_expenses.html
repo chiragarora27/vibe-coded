@@ -1,0 +1,84 @@
+{% extends 'base.html' %}
+{% block title %}All Expenses{% endblock %}
+{% block page_title %}All Expenses{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-h1">All Expenses</h1>
+    <p class="page-sub">{{ expenses | length }} transaction{{ 's' if expenses | length != 1 }} • Total: ₹{{ "{:,.2f}".format(total) }}</p>
+  </div>
+  <a href="{{ url_for('expenses.add') }}" class="btn btn--primary">+ Add Expense</a>
+</div>
+
+<div class="card card--table">
+  <div class="card__header">
+    <div class="search-wrap">
+      <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+        <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+      </svg>
+      <input type="text" id="tableSearch" placeholder="Search expenses…" class="search-input" />
+    </div>
+  </div>
+
+  {% if expenses %}
+  <div class="table-wrap">
+    <table class="data-table" id="expenseTable">
+      <thead>
+        <tr>
+          <th class="sortable" data-col="0">Name <span class="sort-arrow">↕</span></th>
+          <th class="sortable" data-col="1">Category <span class="sort-arrow">↕</span></th>
+          <th class="sortable" data-col="2">Date <span class="sort-arrow">↕</span></th>
+          <th class="sortable text-right" data-col="3">Amount <span class="sort-arrow">↕</span></th>
+          <th class="th-actions">Actions</th>
+        </tr>
+      </thead>
+      <tbody id="expenseBody">
+        {% for e in expenses %}
+        <tr>
+          <td class="td-name">{{ e.Name }}</td>
+          <td><span class="badge">{{ e.Category }}</span></td>
+          <td class="td-date">{{ e.Date[:10] if e.Date else '—' }}</td>
+          <td class="text-right td-amount">₹{{ "{:,.2f}".format(e.Cost | float) }}</td>
+          <td class="td-actions">
+            <!-- Edit button -->
+            <a href="{{ url_for('expenses.edit', index=e._index) }}"
+               class="action-btn action-btn--edit" title="Edit">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
+                <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
+              </svg>
+            </a>
+            <!-- Delete button — POST form to prevent accidental GETs -->
+            <form method="POST"
+                  action="{{ url_for('expenses.delete', index=e._index) }}"
+                  class="inline-form"
+                  onsubmit="return confirm('Delete \'{{ e.Name }}\'? This cannot be undone.')">
+              <input type="hidden" name="next" value="{{ url_for('expenses.all_expenses') }}" />
+              <button type="submit" class="action-btn action-btn--delete" title="Delete">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                  <polyline points="3 6 5 6 21 6"/>
+                  <path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/>
+                  <path d="M10 11v6M14 11v6"/>
+                  <path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/>
+                </svg>
+              </button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty-state">
+    <p>No expenses recorded yet.</p>
+    <a href="{{ url_for('expenses.add') }}" class="btn btn--outline">Add your first expense</a>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/table.js') }}"></script>
+{% endblock %}

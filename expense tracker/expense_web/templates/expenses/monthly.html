@@ -1,0 +1,105 @@
+{% extends 'base.html' %}
+{% block title %}Monthly Spending{% endblock %}
+{% block page_title %}Monthly Chart{% endblock %}
+
+{% block head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-h1">Monthly Spending</h1>
+    <p class="page-sub">Your expense trend over time.</p>
+  </div>
+</div>
+
+<div class="card chart-card chart-card--wide">
+  <div class="chart-container">
+    <canvas id="monthlyChart"></canvas>
+  </div>
+  <p class="chart-hint" id="chartHint" style="display:none">No data yet. Add some expenses to see your trend.</p>
+</div>
+
+<!-- Month-by-month stats below the chart -->
+<div id="monthStatsGrid" class="cards-grid cards-grid--auto"></div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(async () => {
+  const res  = await fetch('/api/monthly');
+  const data = await res.json();
+
+  if (!data.labels.length) {
+    document.getElementById('chartHint').style.display = 'block';
+    return;
+  }
+
+  // ── Bar chart ───────────────────────────────────────────────
+  const ctx = document.getElementById('monthlyChart').getContext('2d');
+
+  // Gradient fill
+  const grad = ctx.createLinearGradient(0, 0, 0, 400);
+  grad.addColorStop(0, 'rgba(129, 140, 248, 0.7)');
+  grad.addColorStop(1, 'rgba(129, 140, 248, 0.05)');
+
+  new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: data.labels,
+      datasets: [{
+        label: 'Total Spent (₹)',
+        data: data.data,
+        backgroundColor: grad,
+        borderColor: '#818cf8',
+        borderWidth: 2,
+        borderRadius: 6,
+        borderSkipped: false,
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: true,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: ctx => ` ₹${ctx.parsed.y.toLocaleString('en-IN', {minimumFractionDigits: 2})}`
+          }
+        }
+      },
+      scales: {
+        x: {
+          grid: { display: false },
+          ticks: {
+            color: getComputedStyle(document.documentElement).getPropertyValue('--text-secondary').trim(),
+            font: { family: 'DM Sans', size: 13 },
+          }
+        },
+        y: {
+          grid: { color: 'rgba(255,255,255,0.05)' },
+          ticks: {
+            color: getComputedStyle(document.documentElement).getPropertyValue('--text-secondary').trim(),
+            font: { family: 'DM Sans', size: 12 },
+            callback: v => '₹' + v.toLocaleString('en-IN'),
+          }
+        }
+      }
+    }
+  });
+
+  // ── Month stat mini-cards ───────────────────────────────────
+  const grid = document.getElementById('monthStatsGrid');
+  data.labels.forEach((label, i) => {
+    const card = document.createElement('div');
+    card.className = 'card card--stat card--stat-sm';
+    card.innerHTML = `
+      <div class="card__label">${label}</div>
+      <div class="card__value card__value--sm">₹${data.data[i].toLocaleString('en-IN', {minimumFractionDigits: 2})}</div>
+    `;
+    grid.appendChild(card);
+  });
+})();
+</script>
+{% endblock %}
